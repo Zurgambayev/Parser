@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import time
 from selenium.webdriver.common.action_chains import ActionChains
 import json
-import schedule
+
 
 def init_webdriver():
         driver = webdriver.Chrome()
@@ -20,17 +20,17 @@ def init_webdriver():
                 fix_hairline=True)
         return driver
 
-def parser():
-    try:
+
+try:
         driver = init_webdriver()
         driver.maximize_window()
         driver.get('https://www.vinted.com/')
-        time.sleep(6)
+        time.sleep(1)
         close_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='domain-select-modal-close-button']"))
         )
         close_button.click()
-        time.sleep(5)
+        time.sleep(1)
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, "1904"))
         )
@@ -45,10 +45,10 @@ def parser():
         accept = driver.find_element(By.ID,"onetrust-accept-btn-handler").click()
         print("Кнопка 'Accept all' была найдена и кликнута")
         men = driver.find_element(By.ID,"5").click()
-        time.sleep(5)
+        time.sleep(1)
         all_link = driver.find_element(By.CSS_SELECTOR, "a[data-testid='category-item-5']").click()
         # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(5)
+        time.sleep(1)
     
         brand_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='catalog--brand-filter--trigger']"))
@@ -82,7 +82,7 @@ def parser():
                     brand_items[i].click()
                     print(f"Клик по бренду: {brand_items[i].text} (выбран)")
                     print(checkbox.is_selected())
-                    time.sleep(2)  
+                    time.sleep(1)  
                     
                     WebDriverWait(driver, 10).until(
                         lambda driver: checkbox.is_selected()
@@ -153,7 +153,7 @@ def parser():
                            
                             if next_button.is_displayed() and next_button.get_attribute("aria-disabled") == "false":
                                 next_button.click()  
-                                time.sleep(5) 
+                                time.sleep(1) 
                             else:
                                 print("Конец пагинации достигнут или кнопка не активна.")
                     
@@ -165,12 +165,12 @@ def parser():
                     print(f"Бренд и его товары добавлены.")
                     if flag:
                         print('Возвращаемся к бренду и пытаемся повторить действия.')
-                        time.sleep(5)
+        
                         brand_button = WebDriverWait(driver, 10).until(
                             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='catalog--brand-filter--trigger']"))
                         )
                         brand_button.click()
-                        time.sleep(5)
+                 
                         print ("heheheheheheheheheh")
                         brand_items = WebDriverWait(driver, 10).until(
                             EC.presence_of_all_elements_located((By.CLASS_NAME, "pile__element"))
@@ -181,7 +181,7 @@ def parser():
 
                     print(f"Клик по бренду: {brand_items[0].text} (снят выбор)")
                     
-                    time.sleep(2) 
+                    time.sleep(1) 
                     continue
             except Exception as e:
                 print(f"Не удалось кликнуть по бренду: {brand_items[i].text} - {e}")
@@ -191,18 +191,18 @@ def parser():
             json.dump(products, jsonfile, ensure_ascii=False, indent=4)
         print("Данные сохранены в 'men.json'")
 
-    except Exception as ex:
+except Exception as ex:
         print(ex)
-    finally:
+finally:
         driver.close()
         driver.quit()
 
-def main():
-    schedule.every().day.at('19:24').do(parser)
+# def main():
+#     schedule.every().day.at('19:24').do(parser)
 
-    while True:
-        schedule.run_pending()
+#     while True:
+#         schedule.run_pending()
     
     
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

@@ -7,7 +7,8 @@ from bs4 import BeautifulSoup
 import time
 from selenium.webdriver.common.action_chains import ActionChains
 import json
-import schedule
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
+
 
 def init_webdriver():
         driver = webdriver.Chrome()
@@ -20,35 +21,30 @@ def init_webdriver():
                 fix_hairline=True)
         return driver
 
-def parser():
-    try:
+def click_element(driver, element):
+        element.click()
+try:
         driver = init_webdriver()
         driver.maximize_window()
         driver.get('https://www.vinted.com/')
-        time.sleep(6)
+        time.sleep(1)
         close_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='domain-select-modal-close-button']"))
         )
         close_button.click()
-        time.sleep(5)
+        time.sleep(1)
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.ID, "1904"))
         )
         
         print("Модальное окно закрыто, элемент 'Women' доступен для клика")
-        # Поиск и клик по кнопке "Accept all"
-        # accept_button = WebDriverWait(driver, 10).until(
-        #     EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
-        # )
-        # accept_button.click()
-
         accept = driver.find_element(By.ID,"onetrust-accept-btn-handler").click()
         print("Кнопка 'Accept all' была найдена и кликнута")
         women = driver.find_element(By.ID,"1904").click()
-        time.sleep(5)
+        time.sleep(1)
         all_link = driver.find_element(By.CSS_SELECTOR, "a[data-testid='category-item-1904']").click()
         # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(10)
+        time.sleep(1)
     
         brand_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='catalog--brand-filter--trigger']"))
@@ -64,26 +60,30 @@ def parser():
         cnt2 = 0
         for i in range(len(brand_items)): 
             try:
-            
+                print("era")
                 checkbox = WebDriverWait(brand_items[i], 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='checkbox']"))
                 )
                 nameBrand = WebDriverWait(brand_items[i], 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".web_ui__Text__text.web_ui__Text__title.web_ui__Text__left"))
                 )
+                print("era1")
                 print(nameBrand.text)  
                 brand_dict = {
                     "nameBrand": nameBrand.text,
                     "items": [],  
                     "cnt" : 0
                 }
+                text1 = brand_dict["nameBrand"]
+                print("Era")
                 if not checkbox.is_selected(): 
                     print(f"Попытка клика по бренду: {brand_items[i].text}")
+                    driver.execute_script("arguments[0].scrollIntoView(true); window.scrollBy(0, -100);", brand_items[i])
+                    time.sleep(1)
                     brand_items[i].click()
                     print(f"Клик по бренду: {brand_items[i].text} (выбран)")
                     print(checkbox.is_selected())
                     time.sleep(2)  
-                    
                     WebDriverWait(driver, 10).until(
                         lambda driver: checkbox.is_selected()
                     )
@@ -149,11 +149,10 @@ def parser():
                             next_button = WebDriverWait(driver, 10).until(
                                 EC.presence_of_element_located((By.CSS_SELECTOR, 'a[data-testid="catalog-pagination--next-page"]'))
                             )
-                            
                            
                             if next_button.is_displayed() and next_button.get_attribute("aria-disabled") == "false":
                                 next_button.click()  
-                                time.sleep(5) 
+                                time.sleep(1) 
                             else:
                                 print("Конец пагинации достигнут или кнопка не активна.")
                     
@@ -164,24 +163,21 @@ def parser():
                     products.append(brand_dict)
                     print(f"Бренд и его товары добавлены.")
                     if flag:
-                        print('Возвращаемся к бренду и пытаемся повторить действия.')
-                        time.sleep(5)
+                        print("lloll")
                         brand_button = WebDriverWait(driver, 10).until(
                             EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='catalog--brand-filter--trigger']"))
                         )
-                        brand_button.click()
-                        time.sleep(5)
-                        print ("heheheheheheheheheh")
                         brand_items = WebDriverWait(driver, 10).until(
                             EC.presence_of_all_elements_located((By.CLASS_NAME, "pile__element"))
                         )   
-                        brand_items[0].click()
-                        # print(checkbox.is_selected())
-                        print("lelelo")
-
-                    print(f"Клик по бренду: {brand_items[0].text} (снят выбор)")
-                    
-                    time.sleep(2) 
+                        filter_elements = WebDriverWait(driver, 10).until(
+                            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "button[data-testid^='catalog--selected-filter-brandIds-']"))
+                        )
+                        print('CLICKED')
+                        if filter_elements:
+                            last_element = filter_elements[-1]
+                            click_element(driver, last_element)
+                            time.sleep(5)
                     continue
             except Exception as e:
                 print(f"Не удалось кликнуть по бренду: {brand_items[i].text} - {e}")
@@ -191,18 +187,9 @@ def parser():
             json.dump(products, jsonfile, ensure_ascii=False, indent=4)
         print("Данные сохранены в 'women.json'")
 
-    except Exception as ex:
-        print(ex)
-    finally:
-        driver.close()
-        driver.quit()
+except Exception as ex:
+    print(ex)
+finally:
+    driver.close()
+    driver.quit()
 
-def main():
-    schedule.every().day.at('19:13').do(parser)
-
-    while True:
-        schedule.run_pending()
-    
-    
-if __name__ == '__main__':
-    main()
